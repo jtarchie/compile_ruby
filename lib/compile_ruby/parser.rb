@@ -1,3 +1,5 @@
+require 'compile_ruby/preserved_array'
+
 module CompileRuby
   class Parser
     attr_accessor :code

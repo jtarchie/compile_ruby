@@ -4,18 +4,39 @@ module CompileRuby
 
     def initialize(code)
       @sexp = RubyParser.new.parse(code)
+      @inferred_types = PreservedArray.new
+      @imply_return = true
     end
 
     def compile!
-      @inferred_type = "int"
       compiled_statement = compile(@sexp)
-      "#{@inferred_type} value() {return #{compiled_statement};}"
+      inferred_type = @inferred_types.pop || "void"
+      last_sexp = @current_sexp.pop
+      if last_sexp.sexp_type == :lasgn
+        "#{inferred_type} value() {#{compiled_statement} return #{last_sexp.sexp_body.first}}"
+      else
+        trailing_char = compiled_statement[-1]==";" ? "" : ";"
+        "#{inferred_type} value() {#{@imply_return ? 'return ': ''}#{compiled_statement}#{trailing_char}}"
+      end
     end
 
     private
 
     def compile(sexp)
-      send("handle_#{sexp.sexp_type}", sexp.sexp_body)
+      @current_sexp ||= PreservedArray.new
+      @current_sexp << sexp
+
+      compiled_exp = send("handle_#{sexp.sexp_type}", sexp.sexp_body)
+
+      @current_sexp.pop
+      compiled_exp
+    end
+
+    def handle_lasgn(sexp)
+      @imply_return = false
+      name, rhs = sexp
+      compiled_statement = compile(rhs)
+      "#{@inferred_types.last} #{name}=#{compiled_statement};"
     end
 
     def handle_arglist(sexp)
@@ -33,7 +54,12 @@ module CompileRuby
     end
 
     def handle_lit(sexp)
-      @inferred_type = "double" if sexp.sexp_type.is_a?(Float)
+      case sexp.sexp_type
+      when Float
+        @inferred_types << "double"
+      when Integer
+        @inferred_types << "int" unless @inferred_types.include?("double")
+      end
       "#{sexp.sexp_type}"
     end
   end
