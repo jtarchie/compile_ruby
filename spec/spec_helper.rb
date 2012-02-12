@@ -17,4 +17,9 @@ RSpec.configure do |config|
   def compile!(code)
     CompileRuby::Compiler.new(code).compile!
   end
+  
+  def run!(code)
+    CompileRuby::Parser.new(code).run!
+  end
+
 end

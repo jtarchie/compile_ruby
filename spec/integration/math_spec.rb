@@ -1,10 +1,6 @@
 require "spec_helper"
 
 describe "Mathematical Operations" do
-  def run!(string)
-    CompileRuby::Parser.new(string).run!
-  end
-
   describe "literal values" do
     it "returns the last evaluated integer" do
       run!("1").should == "1"

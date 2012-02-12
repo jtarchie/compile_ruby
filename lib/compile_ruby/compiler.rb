@@ -13,7 +13,7 @@ module CompileRuby
       inferred_type = @inferred_types.pop || "void"
       last_sexp = @current_sexp.pop
       if last_sexp.sexp_type == :lasgn
-        "#{inferred_type} value() {#{compiled_statement} return #{last_sexp.sexp_body.first}}"
+        "#{inferred_type} value() {#{compiled_statement} return #{last_sexp.sexp_body.first};}"
       else
         trailing_char = compiled_statement[-1]==";" ? "" : ";"
         "#{inferred_type} value() {#{@imply_return ? 'return ': ''}#{compiled_statement}#{trailing_char}}"
@@ -30,6 +30,18 @@ module CompileRuby
 
       @current_sexp.pop
       compiled_exp
+    end
+
+    def handle_block(sexp)
+      expressions = sexp.collect do |s|
+        compile(s)
+      end
+      expressions[-1] = " return #{expressions[-1]}"
+      expressions.join('')
+    end
+
+    def handle_lvar(sexp)
+      sexp.sexp_type.to_s
     end
 
     def handle_lasgn(sexp)
@@ -60,7 +72,7 @@ module CompileRuby
       when Integer
         @inferred_types << "int" unless @inferred_types.include?("double")
       end
-      "#{sexp.sexp_type}"
+      sexp.sexp_type.to_s
     end
   end
 end
